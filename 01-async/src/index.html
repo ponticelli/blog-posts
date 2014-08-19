@@ -48,14 +48,14 @@ asyncEach2([1, 2, 3], logItem);
 console.log("end asyncEach2");
 */
 
-
-function makeCallbackWrapper(arr, i, callback) {
-    return function() {
-        callback(arr[i]);
-    }
-}
-
+/*
 function asyncEach3(arr, callback) {
+    function makeCallbackWrapper(arr, i, callback) {
+        return function() {
+            callback(arr[i]);
+        }
+    }
+
     for (var i = 0; i < arr.length; ++i) {
         setTimeout(makeCallbackWrapper(arr, i, callback), 0);
     }
@@ -64,6 +64,18 @@ function asyncEach3(arr, callback) {
 console.log("begin asyncEach3");
 asyncEach3([1, 2, 3], logItem);
 console.log("end asyncEach3");
+*/
+
+function asyncEach4(arr, callback) {
+    for (var i = 0; i < arr.length; ++i) {
+        var boundCallback = callback.bind(null, arr[i]);
+        setTimeout(boundCallback, 0);
+    }
+}
+
+console.log("begin asyncEach4");
+asyncEach4([1, 2, 3], logItem);
+console.log("end asyncEach4");
 
 </script>
 </body>

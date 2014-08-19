@@ -10,18 +10,21 @@ of the language and eco-system.
 
 ## Callbacks
 
-In JavaScript, the most common mechanism for exposing an asynchronous
-API is to use a callback function.  Because JavaScript treats functions
-as [first-class
+In JavaScript, one of the most common mechanisms for exposing an
+asynchronous API is to use a function that accepts another function as
+an argument.  These function arguments are commonly known as callbacks
+or callback functions, because they give the primary function a hook
+with which to "call back" to you - by invoking the function you provided,
+at an appropriate time, or multiple times.  Because JavaScript treats
+functions as [first-class
 citizens](http://en.wikipedia.org/wiki/First-class_citizen), you can
 pass function instances as arguments to other functions, or return
 function instances from functions, just as easily as you can pass or
-return numbers, strings, booleans, objects, or arrays.  By passing a
-function into another function, you are essentially injecting some
-custom code to be executed within the context of some larger routine or
-algorithm, and you are also relinquishing control of your code - you are
-placing the responsibility of invoking your function into the hands of
-someone else, which can be quite powerful.
+return numbers, strings, booleans, objects, or arrays.  Callback
+functions can be invoked by the primary function at any time, any number
+of times, synchronously or asynchronously, and using any context binding
+and arguments, which creates an extremely flexbile and powerful
+mechanism for communicating between JavaScript modules.
 
 ## JavaScript Event Loop/Call Stack
 
@@ -33,29 +36,32 @@ basic form, JavaScript is a single-threaded runtime, so it does not
 support things like multi-threading, multiple processes, nor
 inter-process-communication.  Despite the apparent (and actual)
 limitations of this, the lack of multi-threading can actually make your
-life as a JavaScript developer quite a bit easier, and can also allow
-for interesting types of optimizations by JavaScript tools .  Because
-there is only a single thread, you will never encounter (nor have to
-deal with) common threading challenges like race conditions, resource
-contention, and thread deadlocks.  When the JavaScript interpreter
-begins to execute a chunk of code (e.g. a function call), it will
-continue executing that chunk of code until it reaches its synchronous
-completion (the end of any synchronous statements contained in the
-function).  In the course of executing this synchronous block of code,
-any other non-synchronous function invocations (i.e. external event
-handler invocations, async function calls, async callbacks, etc.) are
-simply queued up for later execution by the runtime.  Once the current
-function call reaches its synchronous completion, the event-loop will
-grab the next block of code (function call) off of the queue and execute
-that function until it reaches **its** synchronous completion, and so
-on.  In this way, you can safely assume that any sequence of synchronous
-statements you put together in a function will always execute to
-completion before any other code is executed - i.e. your synchronous
-code will never be interrupted.  You will also have exclusive access to
-the CPU until you yield it (or the runtime kills your apparent infinite
-loop...).  This can be quite helpful in application development, but can
-also require careful consideration and planning, especially when you
-need to use async APIs, and the sequencing of your code matters.
+life as a JavaScript developer quite a bit easier, and allows
+for interesting types of optimizations within JavaScript
+compilation/minification/transpilation tools.
+
+Because there is only a single thread, you will never encounter (nor
+have to deal with) common threading challenges like race conditions,
+resource contention, thread deadlocks, etc.  When the JavaScript
+interpreter begins to execute a chunk of code (e.g. a function call), it
+will continue executing that chunk of code until it reaches its
+synchronous completion (the end of any synchronous statements contained
+in the function).  In the course of executing this synchronous block of
+code, any other non-synchronous function invocations (i.e. external
+event handler invocations, async function calls, async callbacks, etc.)
+are simply queued up for later execution by the runtime event loop.
+Once the current function call reaches its synchronous completion, the
+event-loop will grab the next chunk of code (function call) off of the
+queue and execute that function until it reaches **its** synchronous
+completion, and so on.  In this way, you can safely assume that any
+sequence of synchronous statements you put together in a function will
+always execute to completion, without interruption, before any other
+code is executed.  You will also have exclusive access to the CPU until
+you yield it (or the runtime kills your apparent blocking code or
+infinite loop...).  This can be quite helpful in application
+development, but can also require careful consideration and planning,
+especially when you need to use async APIs, and the sequencing of your
+code matters.
 
 ## "Next Tick" or "Next Turn of the Event Loop"
 
@@ -70,6 +76,22 @@ in general, it just means that a function call is enqueued for execution
 at a later time.  In this case, the term "later" may or may not imply a
 specific time delay, but always implies that code will be deferred until
 the current synchronous function execution has completed.
+
+## Non-Blocking Operations
+
+Because JavaScript is single-threaded, it's critical that time-intensive
+operations are all non-blocking, and asynchronous, so that these
+operations do not block the main application event loop.  When something
+blocks in the event loop, no other application logic can run, and the
+applciation tends to grind to a complete halt.  Long running operations
+should all be invoked asynchronously, and use some type of async
+completion callback when the operation has finished (or failed).  Its
+also common to use progress callbacks for long running operations where
+incremental progress can be reported (e.g. percentage notifications for
+a large file copy operation).  All of these types of callbacks are
+simply added to the event queue, and executed in a future turn of the
+event loop, so its critical that nothing blocks the event loop at any
+time.
 
 ## Synchronous vs. Asynchronous Callback APIs
 
@@ -122,8 +144,8 @@ end
 ```
 
 There's nothing really special about this example, other than the fact
-that the `for` loop and `each` function call are executed to completion
-before we reach the `console.log("end")` statement.
+that the `for` loop and `each` function call are executed synchronously
+to completion before we reach the `console.log("end")` statement.
 
 ## Async callback-based "each" function (attempt 1)
 
@@ -131,7 +153,10 @@ An async version of "each" might look like the following.  Here, I'm
 using setTimeout to force the execution of the callback to be async.
 Note that setTimeout is simply a helper function that enqueues a
 function call to be executed at a later time - only after the current
-synchronous code has been completed.
+synchronous code has been completed (i.e. the "next turn of the event
+loop").  setTimeout also takes a minimum time delay parameter, but here,
+I'm just using a delay of 0ms, to force it to be async, but without any
+extra delay.
 
 ```js
 function asyncEach(arr, callback) {
@@ -200,7 +225,7 @@ does a function get access to the full scope of variables in its current
 (calling) function returns or goes out of scope.  As long as a function
 instance is "alive" (is referenced by something, and has not been
 garbage collected), it will hold onto this scope, even when
-calling/parent functions are long gone.  Because function instances can
+calling functions is long gone.  Because function instances can
 be returned from functions, or passed into other functions, a function
 can easily live beyond the lifetime of its parent or calling function.
 This "holding-onto" of scope can sometimes result in subtle memory
@@ -210,26 +235,27 @@ loop captures a reference to the scope environment that existed when the
 function was created, and holds onto that scope even when the `for` loop
 and `asyncEach` function have exited.  These callback functions live
 beyond the lifetime of the `for` loop, because the callback function
-instances have been added to the event queue, so the scope variables
-like `arr` and `i` remain alive (referenced).  When the callbacks are
-finally invoked via the event loop, the callbacks still have access to
-variables like `arr` and `i`, but the variable `i` now has the value of
-`3`, because the `for` loop had previously executed synchronously to
-completion.  In each callback, the `logItem` function is essentially
-trying to log `arr[3]` each time, which is an undefined value in the
-array `arr`.
+instances have been added to the event queue via setTimeout, so the
+scope variables like `arr` and `i` remain alive (referenced).  When the
+callbacks are finally invoked via the event loop, the callbacks still
+have access to variables like `arr` and `i`, but the variable `i` now
+has the value of `3`, because the `for` loop had previously executed
+synchronously to completion.  In each callback, the `logItem` function
+is essentially logging `arr[3]` each time, which is an undefined
+index/value in the array `arr`.
 
-There are several ways to address this, but most resolve around adding an
+There are several ways to address this, but most revolve around adding an
 additonal function scope around the variables we want to capture for our
 callback.
 
 ## Async callback-based "each" function (attempt 2)
 
 One way to get the desired value of `i` for each callback is to
-introduce a [immediately-invoked function expression (IIFE)](http://en.wikipedia.org/wiki/Immediately-invoked_function_expression) around the
-variables we want to capture.  An IIFE has several uses, one of which is
-to forcefully create a scope, where you wouldn't otherwise have one.
-[This is not recommended inside
+introduce an [immediately-invoked function expression
+(IIFE)](http://en.wikipedia.org/wiki/Immediately-invoked_function_expression)
+around the variables we want to capture.  An IIFE has several uses, one
+of which is to forcefully create a scope, where you wouldn't otherwise
+have one (e.g. inside a `for` loop).  [This is not recommended inside
 loops](http://jslinterrors.com/dont-make-functions-within-a-loop), but
 works:
 
@@ -271,19 +297,20 @@ get to it.
 
 ## Async callback-based "each" function (attempt 3)
 
-The more-preferred way to achieve this is to not use an IIFE inside the
+A more-preferred way to achieve this is to not use an IIFE inside the
 loop, but to create a function outside the loop that creates our
 function scope, like so:
 
 ```js
-function makeCallbackWrapper(arr, i, callback) {
-    // Create our function scope for use inside the loop
-    return function() {
-        callback(arr[i]);
-    }
-}
-
 function asyncEach3(arr, callback) {
+    // Utility inner function to create a wrapper function for the callback
+    function makeCallbackWrapper(arr, i, callback) {
+        // Create our function scope for use inside the loop
+        return function() {
+            callback(arr[i]);
+        }
+    }
+
     for (var i = 0; i < arr.length; ++i) {
         setTimeout(makeCallbackWrapper(arr, i, callback), 0);
     }
@@ -296,11 +323,46 @@ console.log("end");
 
 This time, we are using a separate function `makeCallbackWrapper` to
 create our function scope for each loop iteration.  This code is
-arguably cleaner, easier to read and maintain, and also avoids the IIFE
-inside the loop problem.
+arguably cleaner, easier to read and maintain, and also avoids the "IIFE
+inside the loop" performance problem.
 
-But what if we wanted to use this asyncEach function and still print the
-following?
+## Async callback-based "each" function (attempt 4)
+
+Another "more advanced" way to create a scope inside our `for` loop is
+to use function binding or [partial
+application](http://en.wikipedia.org/wiki/Partial_application), like
+with the native
+`[Function.prototype.bind](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind)`
+function (only available in newer browsers), or one of the many `bind`
+implementations provided in libraries like
+[Underscore](http://underscorejs.org), [Lo-Dash](http://lodash.com),
+[jQuery](http://jquery.org), etc.
+
+Function binding and partial application are larger topics, which can be
+convered more in-depth in a future blog post.
+
+```js
+function asyncEach4(arr, callback) {
+    for (var i = 0; i < arr.length; ++i) {
+        // boundCallback is a new function which has arr[i] permanently
+        // set (partially applied) as its first argument.  The "null" argument
+        // is the binding for the `this` context variable in the callback, which
+        // we don't care about in this example...
+        var boundCallback = callback.bind(null, arr[i]);
+        setTimeout(boundCallback, 0);
+    }
+}
+
+console.log("begin");
+asyncEach4([1, 2, 3], logItem);
+console.log("end");
+```
+
+## Sequencing of Async Code
+
+But what if we wanted to use one of these `asyncEach` functions but
+maintain the sequencing of the log statements, like in the original
+synchronous `each` example:
 
 ```js
 begin
@@ -310,7 +372,8 @@ begin
 end
 ```
 
-This might be a good topic for a future blog post...
+Maintaining the sequencing of async code will be covered in the next
+blog post!
 
 ## Wrap-up
 
