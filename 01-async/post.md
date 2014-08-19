@@ -23,7 +23,7 @@ function instances from functions, just as easily as you can pass or
 return numbers, strings, booleans, objects, or arrays.  Callback
 functions can be invoked by the primary function at any time, any number
 of times, synchronously or asynchronously, and using any context binding
-and arguments, which creates an extremely flexbile and powerful
+and arguments, which creates an extremely flexible and powerful
 mechanism for communicating between JavaScript modules.
 
 ## JavaScript Event Loop/Call Stack
@@ -83,7 +83,7 @@ Because JavaScript is single-threaded, it's critical that time-intensive
 operations are all non-blocking, and asynchronous, so that these
 operations do not block the main application event loop.  When something
 blocks in the event loop, no other application logic can run, and the
-applciation tends to grind to a complete halt.  Long running operations
+application tends to grind to a complete halt.  Long running operations
 should all be invoked asynchronously, and use some type of async
 completion callback when the operation has finished (or failed).  Its
 also common to use progress callbacks for long running operations where
@@ -245,7 +245,7 @@ is essentially logging `arr[3]` each time, which is an undefined
 index/value in the array `arr`.
 
 There are several ways to address this, but most revolve around adding an
-additonal function scope around the variables we want to capture for our
+additional function scope around the variables we want to capture for our
 callback.
 
 ## Async callback-based "each" function (attempt 2)
@@ -332,7 +332,7 @@ Another "more advanced" way to create a scope inside our `for` loop is
 to use function binding or [partial
 application](http://en.wikipedia.org/wiki/Partial_application), like
 with the native
-`[Function.prototype.bind](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind)`
+[Function.prototype.bind](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind)
 function (only available in newer browsers), or one of the many `bind`
 implementations provided in libraries like
 [Underscore](http://underscorejs.org), [Lo-Dash](http://lodash.com),
