@@ -72,7 +72,7 @@ subscribed, and the subscribers do not need to have intimate knowledge
 of what the publisher is doing internally.
 
 Most larger JavaScript frameworks (browser or non-browser) support some
-type of eventing support, including
+type of eventing, including
 [jQuery](http://api.jquery.com/category/events/),
 [AngularJS](https://docs.angularjs.org/api/ng/type/$rootScope.Scope#$on),
 [Backbone](http://backbonejs.org/#Events),
@@ -81,7 +81,7 @@ type of eventing support, including
 mentioned before, Node.js, with many varieties of `EventEmitters` and
 `streams`.
 
-Events are a useful synchronous or asynchronous communciation mechanism,
+Events are a useful synchronous or asynchronous communication mechanism,
 but they do not inherently help to solve the problem of the sequencing
 of async calls.  You can however use other techniques to help with this,
 like you can with callbacks.
@@ -104,7 +104,7 @@ failed; whereas, a Promise-based function does not accept callback
 arguments, but instead returns an `promise` object which other
 components can use to register completion or failure callbacks.
 
-When talking about promises, there is some very specific terminology to
+When talking about promises, there is some very specific terminology
 involved, which is outlined in the [Promises/A+
 spec](https://promisesaplus.com/).  There are other promise specs
 available too, but Promises/A+ seems to be one of the more (most)
